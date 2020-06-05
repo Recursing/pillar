@@ -5,6 +5,7 @@ This is for user-generated stuff, like comments.
 
 import bleach
 import commonmark
+import functools
 
 from . import shortcodes
 
@@ -41,6 +42,22 @@ ALLOWED_STYLES = [
     'color', 'font-weight', 'background-color',
 ]
 
+# Non-standard TLDS that bleach doesn't linkify:
+# see https://github.com/mozilla/bleach/issues/519
+EXTRA_TLDS = [
+    "community",
+    "chat",
+    "today",
+    "cloud",
+    "fund",
+    "to",
+]
+
+TLDS = bleach.linkifier.TLDS + EXTRA_TLDS
+LINKIFY_FILTER = functools.partial(
+    bleach.linkifier.LinkifyFilter, url_re=bleach.linkifier.build_url_re(tlds=TLDS)
+)
+
 
 def markdown(s: str) -> str:
     commented_shortcodes = shortcodes.comment_shortcodes(s)
@@ -51,7 +68,7 @@ def markdown(s: str) -> str:
                              attributes=ALLOWED_ATTRIBUTES,
                              styles=ALLOWED_STYLES,
                              strip_comments=False,
-                             filters=[bleach.linkifier.LinkifyFilter])
+                             filters=[LINKIFY_FILTER])
 
     safe_html = cleaner.clean(tainted_html)
     return safe_html
